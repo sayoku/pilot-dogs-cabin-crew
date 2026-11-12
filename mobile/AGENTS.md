@@ -1,3 +1,5 @@
+Also follow the root `AGENTS.md`. It holds the team rules (workflow, ownership, docs, accessibility). This file only adds Expo specific rules.
+
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
 ## Expo has changed — do not trust your training data
