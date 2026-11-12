@@ -32,7 +32,7 @@ Pilot Dogs Cabin Crew is an app meant to streamline the Q/A and training resourc
 
 ## Backend (Fast API)
 
-Stub endpoints for every screen/view. 
+Stub endpoints for every screen, all in `main.py`, with models in `schemas.py`.
 Responses are hardcoded sample data(`sample_data.py`); nothing is saved yet. Swap in database calls inside the route functions later.
 
 ## Run
