@@ -12,9 +12,11 @@ Rules for the humans driving the agents live in `CONTRIBUTING.md`. Read it too, 
 
 An app for Pilot Dogs, a Columbus OH nonprofit that trains guide dogs for people who are blind or visually impaired. Three kinds of users.
 
-- Students and graduates (people in the guide dog program). Many are blind or low vision and use VoiceOver, TalkBack, large text, or read aloud.
-- Co-Pilots (volunteers who raise puppies)
-- Trainers and admins (Pilot Dogs staff)
+- Students and graduates (people in the guide dog program). Many are blind or low vision and use VoiceOver, TalkBack, large text, or read aloud. Role key `graduate`.
+- Co-Pilots (volunteers who raise puppies). Role key `copilot`.
+- Trainers and admins (Pilot Dogs staff). Role key `admin`.
+
+Use these role keys everywhere (API, mobile, tests). They are defined as `Role` in `backend/schemas.py`.
 
 The app gives trusted, trainer approved information. It is not a chatbot and not a forum.
 
@@ -27,11 +29,13 @@ mobile/               Expo (React Native, TypeScript) app, Expo Router
   src/components/     Shared components
   src/hooks/          Shared hooks
   src/constants/      Theme and constants
-backend/              Python FastAPI service
-  app/main.py         Creates the app and registers routes
-  app/config.py       Reads settings from the environment
-  app/db.py           Database connection
-  app/models.py       Database schema, source of truth for all data (backend owner creates it)
+backend/              Python FastAPI service. Run it from here with `uvicorn main:app --reload`.
+  main.py             The app, auth helpers, and every route, grouped by screen
+  schemas.py          Pydantic request and response models, source of truth for data shapes
+  sampledata.py       Hardcoded sample data the routes return until a database exists
+  config.py           Placeholder for reading settings from the environment
+  db.py               Placeholder for the database connection
+  requirements.txt    Python dependencies
 docs/
   REGISTRY.md         Everything that exists and how to use it. Read this first.
   decisions.md        Team decisions and why they were made
@@ -118,7 +122,9 @@ Do not make it. Add a row to the "Requests between areas" table in `docs/REGISTR
 
 ### 4.5 Schema changes
 
-`backend/app/models.py` is the source of truth. Only the backend owner's agent edits it. Every schema change needs an Alembic migration in the same PR and an update to the Models section of REGISTRY.md. Never edit a migration that has already been merged. Write a new one.
+`backend/schemas.py` is the source of truth for data shapes. Only the backend owner's agent edits it, and every change needs an update to REGISTRY.md in the same PR. Mobile code reads these shapes from REGISTRY.md, so a renamed or removed field breaks other areas.
+
+There is no database yet. Routes return data from `backend/sampledata.py`. When the backend owner adds a database, every schema change after that needs a migration in the same PR, and a merged migration is never edited. Write a new one.
 
 ## 5. Documentation rules
 
@@ -186,11 +192,12 @@ Many users are blind or low vision. A screen that fails these checks is not done
 
 ## 9. Backend rules
 
-- All routes live under `/api/v1/`. One router file per resource in `backend/app/routers/`.
-- Request and response bodies use Pydantic schemas in `backend/app/schemas/`. Never return a raw ORM object.
-- Every endpoint checks the caller's role and `role_status = approved` before returning private data.
-- Students only see their own questions and answers. Content is filtered by `audience` and `status = published` for non staff.
-- Errors return `{"detail": "<message>", "code": "<SNAKE_CASE_CODE>"}` with a correct HTTP status.
+- All routes live in `backend/main.py` with no version prefix (`/faqs`, not `/api/v1/faqs`). Keep them grouped under the screen comment they belong to. Admin routes start with `/admin/`.
+- Request and response bodies use Pydantic models from `backend/schemas.py`. Every route sets `response_model`.
+- Routes that need a signed in user take `user: CurrentUser`. Admin routes add `dependencies=ADMIN_ONLY`. Do not write a new auth check. Use these two.
+- Auth is a stub. Tokens look like `stub-<role>` and are not verified. Never treat it as secure. Real auth must check the caller's role and that the role was approved by staff, so a user cannot make themselves an admin.
+- Students only see their own questions and answers.
+- Errors raise `HTTPException(status_code=..., detail="<message>")`, which returns `{"detail": "<message>"}`. Use the correct HTTP status (401 not signed in, 403 wrong role, 404 not found, 422 bad input).
 - Never hard delete. Set `is_active = False`.
 - Never log passwords, tokens, or the text of private questions.
 - Never store medical records, eye exam results, or background check data. They are out of scope for this app.
